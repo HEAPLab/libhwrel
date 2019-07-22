@@ -9,6 +9,7 @@
 #define LIBHWREL_H_
 
 #include <chrono>
+#include <memory>
 #include <stdexcept>
 #include <utility>
 #include <vector>
@@ -282,6 +283,26 @@ private:
 
 using RequestGPU = RequestCPU; 		///< GPU currently has the same attributes of CPU
 
-};	// libhwrel
+/**
+ * @brief The main class to be inherited and implemented by the HW reliability monitor.
+ *
+ * @note This class is abstract and must be inherited to be instanced.
+ */
+class HWReliabilityMonitor {
+
+public:
+
+	/** @brief The default virtual destructor. */
+	virtual ~HWReliabilityMonitor() = default;
+
+	/**
+	 * @brief The main method to be implemented that will perform the analysis.
+	 */
+	virtual std::shared_ptr<Response> perform_analysis(std::shared_ptr<Request> req) = 0;
+
+};
+
+}	// namespace libhwrel
 
 #endif // LIBHWREL_H_
+
