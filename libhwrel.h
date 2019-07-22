@@ -90,7 +90,7 @@ public:
      *                            10 means 0.001).
 	 * @throw std::invalid_argument If failure_probability < 0 or failure_probability > 1000.
  	 */
-	explicit Response(unsigned short failure_probability) : fail_probability(fail_probability) {
+	Response(unsigned short failure_probability) : fail_probability(failure_probability) {
 		if(failure_probability > 1000) {
 			throw std::invalid_argument("Failure probability invalid value (>1).");
 		}
@@ -122,7 +122,7 @@ public:
 	 * @param res_type  The type of resource
 	 * @param tech_type The type of technology
  	 */
-	explicit Request(resource_type_t res_type, technology_type_t tech_type) noexcept
+	Request(resource_type_t res_type, technology_type_t tech_type) noexcept
         : res_type(res_type), tech_type(tech_type)  {
 
 	}
@@ -151,9 +151,15 @@ public:
 		return this->temperatures;
 	}
 
-	/** @brief Getter for the previous state returned by the HW reliability monitor */
+	/** @brief Getter for the previous state returned by the HW reliability monitor. If the `epoch`
+      *        of the previous state is 0, it should be interpret as no previous state exists. */
 	previous_reliability_t get_previous_state() const noexcept {
 		return this->prev_state;
+	}
+
+	/** @brief Setter for the previous state returned by the HW reliability monitor */
+	void set_previous_state(previous_reliability_t prev_state) noexcept {
+		this->prev_state = prev_state;
 	}
 
 	/** @brief Add a new temperature to the array. This function should be called only on RM-side */
