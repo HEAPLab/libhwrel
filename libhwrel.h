@@ -26,9 +26,9 @@ namespace libhwrel {
  * This enum represents the possible values for the type of resource.
  */
 enum class resource_type_t {
-	CPU,		///< General Purpose CPU
-	GPU,		///< GPGPU
-	MEMORY		///< Memory (usually DRAM)
+    CPU,        ///< General Purpose CPU
+    GPU,        ///< GPGPU
+    MEMORY        ///< Memory (usually DRAM)
 };
 
 /** 
@@ -37,8 +37,8 @@ enum class resource_type_t {
  * This enum represents the possible values for the technology used to build the specific resource.
  */
 enum class technology_type_t {
-	SILICON,	/**< Custom ASIC chip */
-	FPGA		/**< FPGA-implemented resource */
+    SILICON,    /**< Custom ASIC chip */
+    FPGA        /**< FPGA-implemented resource */
 };
 
 //
@@ -53,9 +53,9 @@ enum class technology_type_t {
  * together with the time point when it was generated.
  */
 struct previous_reliability_t {
-	unsigned short failure_probability;		  /**< The failure probability in
-							                       per-mille format (0-1000) */
-	std::chrono::time_point<std::chrono::system_clock> epoch;
+    unsigned short failure_probability;          /**< The failure probability in
+                                                   per-mille format (0-1000) */
+    std::chrono::time_point<std::chrono::system_clock> epoch;
 };
 
 /**
@@ -65,8 +65,8 @@ struct previous_reliability_t {
  * provide to the hw monitor the list of previous and current values of temperatures. 
  */
 struct temperature_t {
-	float temperature;	                          /** The temperature in Celsius */
-	std::chrono::time_point<std::chrono::system_clock> epoch;
+    float temperature;                              /** The temperature in Celsius */
+    std::chrono::time_point<std::chrono::system_clock> epoch;
 };
 
 //
@@ -84,25 +84,25 @@ struct temperature_t {
 class Response {
 
 public:
-	/**
-	 * @brief The class constructor
-	 * @param failure_probability The failure probability in 0-1000 per-mille format (e.g.
+    /**
+     * @brief The class constructor
+     * @param failure_probability The failure probability in 0-1000 per-mille format (e.g.
      *                            10 means 0.001).
-	 * @throw std::invalid_argument If failure_probability < 0 or failure_probability > 1000.
- 	 */
-	Response(unsigned short failure_probability) : fail_probability(failure_probability) {
-		if(failure_probability > 1000) {
-			throw std::invalid_argument("Failure probability invalid value (>1).");
-		}
-	}
+     * @throw std::invalid_argument If failure_probability < 0 or failure_probability > 1000.
+      */
+    Response(unsigned short failure_probability) : fail_probability(failure_probability) {
+        if(failure_probability > 1000) {
+            throw std::invalid_argument("Failure probability invalid value (>1).");
+        }
+    }
 
-	/** @brief Getter for the failure probability */
-	inline unsigned short get_fail_probability() const noexcept {
-		return this->fail_probability;
-	}
+    /** @brief Getter for the failure probability */
+    inline unsigned short get_fail_probability() const noexcept {
+        return this->fail_probability;
+    }
 
 private:
-	const unsigned short fail_probability;	// 0-1000 in per mille
+    const unsigned short fail_probability;    // 0-1000 in per mille
 
 };
 
@@ -117,68 +117,68 @@ private:
 class Request {
 
 public:
-	/**
-	 * @brief The Request class constructor
-	 * @param res_type  The type of resource
-	 * @param tech_type The type of technology
- 	 */
-	Request(resource_type_t res_type, technology_type_t tech_type) noexcept
+    /**
+     * @brief The Request class constructor
+     * @param res_type  The type of resource
+     * @param tech_type The type of technology
+      */
+    Request(resource_type_t res_type, technology_type_t tech_type) noexcept
         : res_type(res_type), tech_type(tech_type)  {
 
-	}
+    }
 
-	/**
-	 * @brief The default virtual destructor (no dynamic memory used)
- 	 */
-	virtual ~Request() = default;
+    /**
+     * @brief The default virtual destructor (no dynamic memory used)
+      */
+    virtual ~Request() = default;
 
-	/** @brief Getter for resource type */
-	inline resource_type_t get_resource_type() const noexcept {
-		return this->res_type;
-	}
+    /** @brief Getter for resource type */
+    inline resource_type_t get_resource_type() const noexcept {
+        return this->res_type;
+    }
 
-	/** @brief Getter for technology type */
-	inline technology_type_t get_technology_type() const noexcept {
-		return this->tech_type;
-	}
+    /** @brief Getter for technology type */
+    inline technology_type_t get_technology_type() const noexcept {
+        return this->tech_type;
+    }
 
-	/** 
+    /** 
           * @brief Getter for the previous temperatures array. 
-	  * @note The caller must not try to edit the array returned by this function directly
+      * @note The caller must not try to edit the array returned by this function directly
           */
-	const std::vector<temperature_t> & get_temperatures() const noexcept
-	{
-		return this->temperatures;
-	}
+    const std::vector<temperature_t> & get_temperatures() const noexcept
+    {
+        return this->temperatures;
+    }
 
-	/** @brief Getter for the previous state returned by the HW reliability monitor. If the `epoch`
+    /** @brief Getter for the previous state returned by the HW reliability monitor. If the `epoch`
       *        of the previous state is 0, it should be interpret as no previous state exists. */
-	previous_reliability_t get_previous_state() const noexcept {
-		return this->prev_state;
-	}
+    previous_reliability_t get_previous_state() const noexcept {
+        return this->prev_state;
+    }
 
-	/** @brief Setter for the previous state returned by the HW reliability monitor */
-	void set_previous_state(previous_reliability_t prev_state) noexcept {
-		this->prev_state = prev_state;
-	}
+    /** @brief Setter for the previous state returned by the HW reliability monitor */
+    void set_previous_state(previous_reliability_t prev_state) noexcept {
+        this->prev_state = prev_state;
+    }
 
-	/** @brief Add a new temperature to the array. This function should be called only on RM-side */
-	void push_temperature(const temperature_t& temp) {
-		this->temperatures.push_back(temp);
-	}
+    /** @brief Add a new temperature to the array. This function should be called only on RM-side */
+    void push_temperature(const temperature_t& temp) {
+        this->temperatures.push_back(temp);
+    }
 
-	/** @brief Clear the whole temperature array. This function should be called only on RM-side */
-	void clear_temperatures() {
-		this->temperatures.clear();
-	}
+    /** @brief Clear the whole temperature array. This function should be called only on RM-side */
+    void clear_temperatures() {
+        this->temperatures.clear();
+    }
 
 private:
-	const resource_type_t   res_type;
-	const technology_type_t tech_type;
+    const resource_type_t   res_type;
+    const technology_type_t tech_type;
 
-	std::vector<temperature_t> temperatures;
+    std::vector<temperature_t> temperatures;
 
-	previous_reliability_t prev_state;
+    previous_reliability_t prev_state;
 
 };
 
@@ -189,45 +189,45 @@ private:
 class RequestMEM : public Request {
 public:
 
-	/**
-	 * @brief The RequestMEM class constructor
-	 * @param tech_type The type of technology
-	 * @param size      The size in MB
-	 * @param occupancy The level of occupancy for the memory in per-mille format (0-1000). The
+    /**
+     * @brief The RequestMEM class constructor
+     * @param tech_type The type of technology
+     * @param size      The size in MB
+     * @param occupancy The level of occupancy for the memory in per-mille format (0-1000). The
      *                  value 1000 means 100%.
-	 * @throw std::invalid_argument If occupancy > 1000.
- 	 */
-	RequestMEM(technology_type_t tech_type, unsigned int size, unsigned int occupancy)
-	: Request(resource_type_t::MEMORY, tech_type), size(size), occupancy(occupancy) 
-	{
-		if(occupancy > 1000) {
-			throw std::invalid_argument("Occupancy invalid value (>1).");
-		}
-	}
+     * @throw std::invalid_argument If occupancy > 1000.
+      */
+    RequestMEM(technology_type_t tech_type, unsigned int size, unsigned int occupancy)
+    : Request(resource_type_t::MEMORY, tech_type), size(size), occupancy(occupancy) 
+    {
+        if(occupancy > 1000) {
+            throw std::invalid_argument("Occupancy invalid value (>1).");
+        }
+    }
 
-	/**
-	 * @brief The default virtual destructor (no dynamic memory used)
- 	 */
-	virtual ~RequestMEM() = default;
+    /**
+     * @brief The default virtual destructor (no dynamic memory used)
+      */
+    virtual ~RequestMEM() = default;
 
-	/** @brief Getter for the size in MB. This value is always constant. */
-	inline unsigned int get_size() const noexcept {
-		return this->size;
-	}
+    /** @brief Getter for the size in MB. This value is always constant. */
+    inline unsigned int get_size() const noexcept {
+        return this->size;
+    }
 
-	/** @brief Getter for the occupancy. The level of occupancy for the memory in per-mille format (0-1000).  */
-	inline unsigned short get_occupancy() const noexcept {
-		return this->occupancy;
-	}
+    /** @brief Getter for the occupancy. The level of occupancy for the memory in per-mille format (0-1000).  */
+    inline unsigned short get_occupancy() const noexcept {
+        return this->occupancy;
+    }
 
-	/** @brief Setter for the occupancy. The level of occupancy for the memory in per-mille format (0-1000).  */
-	inline void set_occupancy(unsigned int occupancy) noexcept {
-		this->occupancy = occupancy;
-	}
+    /** @brief Setter for the occupancy. The level of occupancy for the memory in per-mille format (0-1000).  */
+    inline void set_occupancy(unsigned int occupancy) noexcept {
+        this->occupancy = occupancy;
+    }
 
 private:
-	const unsigned int size; 	// in MiB
-	unsigned short occupancy;	// 0-1000
+    const unsigned int size;     // in MiB
+    unsigned short occupancy;    // 0-1000
 };
 
 /** 
@@ -237,57 +237,57 @@ private:
 class RequestCPU : public Request {
 public:
 
-	/**
-	 * @brief The RequestCPU class constructor
-	 * @param tech_type The type of technology
-	 * @param clock_frequency The clock frequency in MHz
-	 * @param nr_cores The number of physical processing elements.
-	 * @param activity The activity level of the whole CPU in per-mille format (0-1000). The
+    /**
+     * @brief The RequestCPU class constructor
+     * @param tech_type The type of technology
+     * @param clock_frequency The clock frequency in MHz
+     * @param nr_cores The number of physical processing elements.
+     * @param activity The activity level of the whole CPU in per-mille format (0-1000). The
      *                  value 1000 means 100% (all cores).
-	 * @throw std::invalid_argument If activity > 1000.
- 	 */
-	RequestCPU(technology_type_t tech_type, unsigned int clock_frequency, unsigned int nr_cores,
-		   unsigned int activity)
-	: Request(resource_type_t::CPU, tech_type), clock_frequency(clock_frequency), 
-	  nr_cores(nr_cores), activity(activity)
-	{
-		if(activity > 1000) {
-			throw std::invalid_argument("Activity invalid value (>1).");
-		}
-	}
+     * @throw std::invalid_argument If activity > 1000.
+      */
+    RequestCPU(technology_type_t tech_type, unsigned int clock_frequency, unsigned int nr_cores,
+           unsigned int activity)
+    : Request(resource_type_t::CPU, tech_type), clock_frequency(clock_frequency), 
+      nr_cores(nr_cores), activity(activity)
+    {
+        if(activity > 1000) {
+            throw std::invalid_argument("Activity invalid value (>1).");
+        }
+    }
 
-	/**
-	 * @brief The default virtual destructor (no dynamic memory used)
- 	 */
-	virtual ~RequestCPU() = default;
+    /**
+     * @brief The default virtual destructor (no dynamic memory used)
+      */
+    virtual ~RequestCPU() = default;
 
-	/** @brief Getter for the clock frequency in MHz. */
-	inline unsigned int get_clock_frequency() const {
-		return this->clock_frequency;
-	}
+    /** @brief Getter for the clock frequency in MHz. */
+    inline unsigned int get_clock_frequency() const {
+        return this->clock_frequency;
+    }
 
-	/** @brief Setter for the clock frequency in MHz. */
-	inline void set_clock_frequency(unsigned int clock_frequency) {
-		this->clock_frequency = clock_frequency;
-	}
+    /** @brief Setter for the clock frequency in MHz. */
+    inline void set_clock_frequency(unsigned int clock_frequency) {
+        this->clock_frequency = clock_frequency;
+    }
 
-	/** @brief Getter for the number of cores. */
-	inline unsigned int get_nr_cores() const {
-		return this->nr_cores;
-	}
+    /** @brief Getter for the number of cores. */
+    inline unsigned int get_nr_cores() const {
+        return this->nr_cores;
+    }
 
-	/** @brief Setter for the number of cores. */
-	inline void set_nr_cores(unsigned int nr_cores) {
-		this->nr_cores = nr_cores;
-	}
+    /** @brief Setter for the number of cores. */
+    inline void set_nr_cores(unsigned int nr_cores) {
+        this->nr_cores = nr_cores;
+    }
 
 private:
-	unsigned int clock_frequency;   ///< The clock frequency in MHz
-	unsigned short nr_cores;	///< The number of cores
-	unsigned short activity;	///< The per-mille value of current activity
+    unsigned int clock_frequency;   ///< The clock frequency in MHz
+    unsigned short nr_cores;    ///< The number of cores
+    unsigned short activity;    ///< The per-mille value of current activity
 };
 
-using RequestGPU = RequestCPU; 		///< GPU currently has the same attributes of CPU
+using RequestGPU = RequestCPU;         ///< GPU currently has the same attributes of CPU
 
 /**
  * @brief The main class to be inherited and implemented by the HW reliability monitor.
@@ -298,17 +298,17 @@ class HWReliabilityMonitor {
 
 public:
 
-	/** @brief The default virtual destructor. */
-	virtual ~HWReliabilityMonitor() = default;
+    /** @brief The default virtual destructor. */
+    virtual ~HWReliabilityMonitor() = default;
 
-	/**
-	 * @brief The main method to be implemented that will perform the analysis.
-	 */
-	virtual std::shared_ptr<Response> perform_analysis(std::shared_ptr<Request> req) = 0;
+    /**
+     * @brief The main method to be implemented that will perform the analysis.
+     */
+    virtual std::shared_ptr<Response> perform_analysis(std::shared_ptr<Request> req) = 0;
 
 };
 
-}	// namespace libhwrel
+}    // namespace libhwrel
 
 #endif // LIBHWREL_H_
 
