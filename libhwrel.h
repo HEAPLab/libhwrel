@@ -8,7 +8,10 @@
 #ifndef LIBHWREL_H_
 #define LIBHWREL_H_
 
+#include "perf_counter.h"
+
 #include <chrono>
+#include <map>
 #include <memory>
 #include <stdexcept>
 #include <utility>
@@ -90,19 +93,19 @@ public:
      *                            10 means 0.001).
      * @throw std::invalid_argument If failure_probability < 0 or failure_probability > 1000.
       */
-    Response(unsigned short failure_probability) : fail_probability(failure_probability) {
-        if(failure_probability > 1000) {
-            throw std::invalid_argument("Failure probability invalid value (>1).");
+    Response(float failure_probability) : fail_probability(failure_probability) {
+        if(failure_probability > 1 || failure_probability < 0) {
+            throw std::invalid_argument("Failure probability invalid value (>1 or <0).");
         }
     }
 
     /** @brief Getter for the failure probability */
-    inline unsigned short get_fail_probability() const noexcept {
+    inline float get_fail_probability() const noexcept {
         return this->fail_probability;
     }
 
 private:
-    const unsigned short fail_probability;    // 0-1000 in per mille
+    const float fail_probability;    // 0-1000 in per mille
 
 };
 
@@ -162,19 +165,39 @@ public:
         this->prev_state = prev_state;
     }
 
-    /** @brief Add a new temperature to the array. This function should be called only on RM-side */
+    /** 
+     * @brief Add a new temperature to the array. This function should be called only on RM-side 
+     * @note This should be used by the Resource Manager only!
+     */
     void push_temperature(const temperature_t& temp) {
         this->temperatures.push_back(temp);
     }
 
     /** @brief Clear the whole temperature array. This function should be called only on RM-side */
-    void clear_temperatures() {
+    void clear_temperatures() noexcept {
         this->temperatures.clear();
     }
+
+    /** @brief Return the value of a performance counter by type
+     *  @throws std::out_of_range if not found
+     */
+    const PerfCounter &get_PC(perf_counter_type_t type) const {
+        return perf_counters.at(type);
+    }
+
+    /** @brief Add a new value for a given performance number
+      * @note This should be used by the Resource Manager only!
+     */
+    void add_PC(perf_counter_type_t type, unsigned long value) noexcept {
+        perf_counters.emplace(type, PerfCounter(type, value));
+    }
+
 
 private:
     const resource_type_t   res_type;
     const technology_type_t tech_type;
+
+    std::map<perf_counter_type_t, PerfCounter> perf_counters;
 
     std::vector<temperature_t> temperatures;
 
@@ -220,7 +243,10 @@ public:
         return this->occupancy;
     }
 
-    /** @brief Setter for the occupancy. The level of occupancy for the memory in per-mille format (0-1000).  */
+    /**
+     * @brief Setter for the occupancy. The level of occupancy for the memory in per-mille format (0-1000).
+     * @note This should be used by the Resource Manager only!
+     */
     inline void set_occupancy(unsigned int occupancy) noexcept {
         this->occupancy = occupancy;
     }
@@ -266,7 +292,10 @@ public:
         return this->clock_frequency;
     }
 
-    /** @brief Setter for the clock frequency in MHz. */
+    /** 
+     * @brief Setter for the clock frequency in MHz. 
+     * @note This method should be used by the Resource Manager only!
+     */
     inline void set_clock_frequency(unsigned int clock_frequency) {
         this->clock_frequency = clock_frequency;
     }
@@ -276,7 +305,10 @@ public:
         return this->nr_cores;
     }
 
-    /** @brief Setter for the number of cores. */
+    /**
+     * @brief Setter for the number of cores.
+     * @note This method should be used by the Resource Manager only!
+     */
     inline void set_nr_cores(unsigned int nr_cores) {
         this->nr_cores = nr_cores;
     }
@@ -288,6 +320,52 @@ private:
 };
 
 using RequestGPU = RequestCPU;         ///< GPU currently has the same attributes of CPU
+
+/** 
+ * @brief The specialied Request class for memories.
+ *
+ */
+class RequestAccelerator : public Request {
+public:
+
+    /**
+     * @brief The RequestFPGA class constructor
+     * @param tech_type The type of technology
+     * @param size      The size in MB
+     * @param occupancy The level of occupancy for the memory in per-mille format (0-1000). The
+     *                  value 1000 means 100%.
+     * @throw std::invalid_argument If occupancy > 1000.
+      */
+    RequestAccelerator(technology_type_t tech_type, unsigned int occupancy)
+    : Request(resource_type_t::MEMORY, tech_type), occupancy(occupancy) 
+    {
+        if(occupancy > 1000) {
+            throw std::invalid_argument("Occupancy invalid value (>1).");
+        }
+    }
+
+    /**
+     * @brief The default virtual destructor (no dynamic memory used)
+      */
+    virtual ~RequestAccelerator() = default;
+
+    /** @brief Getter for the occupancy. The level of occupancy for the memory in per-mille format (0-1000).  */
+    inline unsigned short get_occupancy() const noexcept {
+        return this->occupancy;
+    }
+
+    /**
+     * @brief Setter for the occupancy. The level of occupancy for the memory in per-mille format (0-1000).
+     * @note This should be used by the Resource Manager only!
+     */
+    inline void set_occupancy(unsigned int occupancy) noexcept {
+        this->occupancy = occupancy;
+    }
+
+private:
+    unsigned short occupancy;    // 0-1000
+};
+
 
 /**
  * @brief The main class to be inherited and implemented by the HW reliability monitor.
