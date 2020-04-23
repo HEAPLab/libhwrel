@@ -4,5 +4,5 @@ To compile:
 - cmake ..
 - make
 
-To test:
-- make test
+To test (inside build directory):
+- ./example/libhwrel_bsc_test
