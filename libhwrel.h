@@ -16,6 +16,7 @@
 #include <stdexcept>
 #include <utility>
 #include <vector>
+#include <iostream>
 
 namespace libhwrel {
 
@@ -48,6 +49,19 @@ enum class technology_type_t {
 // ------------------------------------ STRUCTS ------------------------------------ 
 //
 
+/**
+ * @brief The struct containg the mapping between the logical core with its physical core
+ * and its socket
+*/
+
+struct core{
+    unsigned int id_logical;
+    unsigned int id_physical;
+    unsigned int id_socket;
+    std::vector<PerfCounter> counter;
+
+};
+
 
 /** 
  * @brief The struct containing the failure probability previously provided by the the HW monitor.
@@ -56,7 +70,7 @@ enum class technology_type_t {
  * together with the time point when it was generated.
  */
 struct previous_reliability_t {
-    unsigned short failure_probability;          /**< The failure probability in
+    float failure_probability;          /**< The failure probability in
                                                    per-mille format (0-1000) */
     std::chrono::time_point<std::chrono::system_clock> epoch;
 };
@@ -94,8 +108,8 @@ public:
      * @throw std::invalid_argument If failure_probability < 0 or failure_probability > 1000.
       */
     Response(float failure_probability) : fail_probability(failure_probability) {
-        if(failure_probability > 1 || failure_probability < 0) {
-            throw std::invalid_argument("Failure probability invalid value (>1 or <0).");
+        if(failure_probability > 1000.0 || failure_probability < 0.0) {
+            throw std::invalid_argument("Failure probability invalid value (>1000 or <0).");
         }
     }
 
@@ -270,17 +284,22 @@ public:
      * @param nr_cores The number of physical processing elements.
      * @param activity The activity level of the whole CPU in per-mille format (0-1000). The
      *                  value 1000 means 100% (all cores).
+     * @param cores_vector The information of logical, physica cores with its id socket. The 
+     *                   first value of vector should be the logical core 0 and so on.
      * @throw std::invalid_argument If activity > 1000.
+     * @throw std::invalid_argument Error core vector assignment.
       */
     RequestCPU(technology_type_t tech_type, unsigned int clock_frequency, unsigned int nr_cores,
-           unsigned int activity)
+           unsigned int activity, std::vector<core> core_vector)
     : Request(resource_type_t::CPU, tech_type), clock_frequency(clock_frequency), 
       nr_cores(nr_cores), activity(activity)
     {
         if(activity > 1000) {
             throw std::invalid_argument("Activity invalid value (>1).");
         }
+      std::copy(core_vector.begin(), core_vector.end(), back_inserter(this->cores_vector));    
     }
+    
 
     /**
      * @brief The default virtual destructor (no dynamic memory used)
@@ -292,6 +311,9 @@ public:
         return this->clock_frequency;
     }
 
+    inline unsigned short get_activity(){
+        return this->activity;
+    }
     /** 
      * @brief Setter for the clock frequency in MHz. 
      * @note This method should be used by the Resource Manager only!
@@ -304,7 +326,77 @@ public:
     inline unsigned int get_nr_cores() const {
         return this->nr_cores;
     }
+    /**
+     * @brief Setter for the number of cores.
+     * @note This method should be used by the Resource Manager only!
+     */
+    inline void set_nr_cores(unsigned int nr_cores) {
+        this->nr_cores = nr_cores;
+    }
 
+    std::vector<core> getCoreVector(){
+        return this->cores_vector;
+    }
+
+private:
+    unsigned int clock_frequency;   ///< The clock frequency in MHz
+    unsigned short nr_cores;    ///< The number of cores
+    unsigned short activity;    ///< The per-mille value of current activity
+
+    std::vector<core> cores_vector; ///< vector of struct core
+};
+
+/** 
+ * @brief The specialied Request class for CPUs.
+ *
+ */
+class RequestGPU : public Request {
+public:
+
+    /**
+     * @brief The RequestCPU class constructor
+     * @param tech_type The type of technology
+     * @param clock_frequency The clock frequency in MHz
+     * @param nr_cores The number of physical processing elements.
+     * @param activity The activity level of the whole CPU in per-mille format (0-1000). The
+     *                  value 1000 means 100% (all cores).
+     * @throw std::invalid_argument If activity > 1000.
+      */
+    RequestGPU(technology_type_t tech_type, unsigned int clock_frequency, unsigned int nr_cores,
+           unsigned int activity)
+    : Request(resource_type_t::GPU, tech_type), clock_frequency(clock_frequency), 
+      nr_cores(nr_cores), activity(activity)
+    {
+        if(activity > 1000) {
+            throw std::invalid_argument("Activity invalid value (>1).");
+        }
+    }
+
+    /**
+     * @brief The default virtual destructor (no dynamic memory used)
+      */
+    virtual ~RequestGPU() = default;
+
+    /** @brief Getter for the clock frequency in MHz. */
+    inline unsigned int get_clock_frequency() const {
+        return this->clock_frequency;
+    }
+
+    inline unsigned short get_activity(){
+        return this->activity;
+    }
+    /** 
+     * @brief Setter for the clock frequency in MHz. 
+     * @note This method should be used by the Resource Manager only!
+     */
+    inline void set_clock_frequency(unsigned int clock_frequency) {
+        this->clock_frequency = clock_frequency;
+    }
+
+    /** @brief Getter for the number of cores. */
+    inline unsigned int get_nr_cores() const {
+        return this->nr_cores;
+    }
     /**
      * @brief Setter for the number of cores.
      * @note This method should be used by the Resource Manager only!
@@ -319,7 +411,6 @@ private:
     unsigned short activity;    ///< The per-mille value of current activity
 };
 
-using RequestGPU = RequestCPU;         ///< GPU currently has the same attributes of CPU
 
 /** 
  * @brief The specialied Request class for memories.
