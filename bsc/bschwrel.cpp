@@ -827,7 +827,7 @@ long double BSC_HWReliabilityMonitor::getFit_processing(std::vector<core> cv, un
                     this->last_fitL2[p_core] = getFIT(this->last_fitL2[p_core],this->original_fitL2, getPastSecondCPU(),act_L2, second_chunk, acceleration_factor_ld);
                     this->last_fitL3[p_core] = getFIT(this->last_fitL3[p_core],this->original_fitL3, getPastSecondCPU(),act_L3, second_chunk, acceleration_factor_ld);
                     
-                    fit_processing=0;
+                    
                     fit_processing+=this->last_fitALU[p_core];
                     fit_processing+=this->last_fitLD_ST_AGU[p_core];
                     fit_processing+=this->last_fitROB[p_core];
@@ -837,6 +837,7 @@ long double BSC_HWReliabilityMonitor::getFit_processing(std::vector<core> cv, un
                     fit_processing+=this->last_fitL3[p_core];
                     
             }
+
             return fit_processing;
     
 }
