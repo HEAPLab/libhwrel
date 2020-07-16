@@ -576,6 +576,7 @@ return value;
 unsigned long long BSC_HWReliabilityMonitor::getL2H(std::vector<PerfCounter> v){
     unsigned long long value = 0;
     unsigned long long value2 = 0 ;
+    unsigned long long hits = 0;
 
     for(int i=0;i<v.size();i++){
         if(v[i].get_type() == perf_counter_type_t::L2_RQST_MISS){
@@ -586,7 +587,13 @@ unsigned long long BSC_HWReliabilityMonitor::getL2H(std::vector<PerfCounter> v){
         }
 
     }
-return (value2 - value);
+    if(value2 >= value){
+        hits = value2 - value;
+    }else{
+        throw std::invalid_argument("Strange, L2 miss > L2 references ");
+    }
+
+return hits;
 }
     
 unsigned long long BSC_HWReliabilityMonitor::getL3M(std::vector<PerfCounter> v){
@@ -603,6 +610,7 @@ return value;
 unsigned long long BSC_HWReliabilityMonitor::getL3H(std::vector<PerfCounter> v){
     unsigned long long value = 0;
     unsigned long long value2 = 0;
+    unsigned long long hits=0;
     
     for(int i=0;i<v.size();i++){
         if(v[i].get_type() == perf_counter_type_t::L3_MISS){
@@ -612,7 +620,16 @@ unsigned long long BSC_HWReliabilityMonitor::getL3H(std::vector<PerfCounter> v){
             value2 = value2 + v[i].get_value();
         }
     }
-return (value2 - value);
+    /*
+        if miss > references
+    */
+    if(value2 >= value){
+      hits = value2 - value;  
+    }else{
+        throw std::invalid_argument("Strange, L3 miss > L3 references ");
+    }
+
+return hits;
 }
 unsigned long long BSC_HWReliabilityMonitor::getCyclesMax(std::vector<core> v){
 
@@ -657,14 +674,19 @@ return value;
 
 void BSC_HWReliabilityMonitor::init_FIT_original_block(int cores_physical_number, int socket_number)
 {
+    /*
+        At moment the system should have the same CPU model if it has
+        more than one cpu.
+    */
 
-    this->original_fitALU = this->fitOriginalCPU / ( this->bl_size * (cores_physical_number)/socket_number) ;
-    this->original_fitLD_ST_AGU = this->fitOriginalCPU / ( this->bl_size * (cores_physical_number)/socket_number) ;
-    this->original_fitROB = this->fitOriginalCPU / ( this->bl_size * (cores_physical_number)/socket_number) ;
-    this->original_fitL1I = this->fitOriginalCPU / ( this->bl_size * (cores_physical_number)/socket_number) ;
-    this->original_fitL1D = this->fitOriginalCPU / ( this->bl_size * (cores_physical_number)/socket_number)  ;
-    this->original_fitL2 = this->fitOriginalCPU / ( this->bl_size * (cores_physical_number)/socket_number) ;
-    this->original_fitL3 = this->fitOriginalCPU / ( this->bl_size * (cores_physical_number)/socket_number) ;
+    this->original_fitALU = this->fitOriginalCPU / ( this->bl_size * (cores_physical_number / socket_number)) ;
+    this->original_fitLD_ST_AGU = this->fitOriginalCPU / ( this->bl_size * (cores_physical_number/ socket_number )) ;
+    this->original_fitROB = this->fitOriginalCPU / ( this->bl_size * (cores_physical_number / socket_number )) ;
+    this->original_fitL1I = this->fitOriginalCPU / ( this->bl_size * (cores_physical_number / socket_number )) ;
+    this->original_fitL1D = this->fitOriginalCPU / ( this->bl_size * (cores_physical_number / socket_number ))  ;
+    this->original_fitL2 = this->fitOriginalCPU / ( this->bl_size * (cores_physical_number / socket_number )) ;
+    this->original_fitL3 = this->fitOriginalCPU / ( this->bl_size * (cores_physical_number / socket_number)) ;
+
 
 }
 
@@ -782,7 +804,9 @@ long double BSC_HWReliabilityMonitor::getFit_processing(std::vector<core> cv, un
     long double act_L2;
     long double act_L3;
 
-     for(int p_core=0;p_core<cv.size();p_core++){
+    std::cout << cv.size() << std::endl;
+
+    for(int p_core=0;p_core<cv.size();p_core++){
 
                     /*
                         activity calculation
@@ -813,6 +837,7 @@ long double BSC_HWReliabilityMonitor::getFit_processing(std::vector<core> cv, un
                     /*
                     Core Calculation Units
                     */
+                  
                     this->last_fitALU[p_core]=getFIT(this->last_fitALU[p_core],this->original_fitALU, getPastSecondCPU(), act_alu , second_chunk, acceleration_factor_ld);
                     this->last_fitLD_ST_AGU[p_core]=getFIT(this->last_fitLD_ST_AGU[p_core],this->original_fitLD_ST_AGU, getPastSecondCPU(), act_ld_st_agu, second_chunk, acceleration_factor_ld);
                     /*
@@ -827,14 +852,14 @@ long double BSC_HWReliabilityMonitor::getFit_processing(std::vector<core> cv, un
                     this->last_fitL2[p_core] = getFIT(this->last_fitL2[p_core],this->original_fitL2, getPastSecondCPU(),act_L2, second_chunk, acceleration_factor_ld);
                     this->last_fitL3[p_core] = getFIT(this->last_fitL3[p_core],this->original_fitL3, getPastSecondCPU(),act_L3, second_chunk, acceleration_factor_ld);
                     
-                    
+
                     fit_processing+=this->last_fitALU[p_core];
                     fit_processing+=this->last_fitLD_ST_AGU[p_core];
                     fit_processing+=this->last_fitROB[p_core];
                     fit_processing+=this->last_fitL1I[p_core];
                     fit_processing+=this->last_fitL1D[p_core];
                     fit_processing+=this->last_fitL2[p_core];
-                    fit_processing+=this->last_fitL3[p_core];
+                    fit_processing+=this->last_fitL3[p_core];   
                     
             }
 
