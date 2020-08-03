@@ -24,6 +24,8 @@ BSC_HWReliabilityMonitor::BSC_HWReliabilityMonitor()
         as manufacturing says. Standard FIT is on
         1.000.000.000 hours. Standard CPU concept of all
         single CPU in one
+
+        fitOriginalMEM is fit of 1 DIMM memory
     */                 
     this->fitOriginalCPU = 19750.510; 
     this->fitOriginalMEM = 36150.601;
@@ -160,17 +162,21 @@ std::shared_ptr<Response> BSC_HWReliabilityMonitor::perform_analysis(std::shared
         std::shared_ptr<RequestMEM> mem_request = std::dynamic_pointer_cast<RequestMEM>(req);
         auto &temperatures_vector = mem_request->get_temperatures(); 
         fail_probability_previous = mem_request->get_previous_state().failure_probability;
-
-       if(fail_probability_previous == 0.0){ 
-            fit_previous = getFitStandardMEM();
-        } else {
-            /*
-            After the first time.. it is 
-            needed / 1000 , for 1000 format
-            */
-            fit_previous = getUncompressFit((long double)this->lastProbMEM /1000 , 
-                                            mem_request->get_resource_type(),
-                                            mem_request->get_technology_type());
+        std::vector<memory> mv = mem_request->getMemVector();
+        
+        if(fail_probability_previous == 0.0){ 
+            this->last_DIMM.clear();
+            for(int i=0;i<mv.size();i++){
+                /*  
+                        If the DIMM exists it set the FIT per MEM. If not
+                        it set a 0. 
+                */
+                if(mv[i].enable == true){
+                    this->last_DIMM.push_back((*this).fitOriginalMEM );    
+                }else{
+                    this->last_DIMM.push_back(0);
+                } 
+            }
         }  
 
         for (int t = 0; t < temperatures_vector.size() - 1; t++)
@@ -180,13 +186,29 @@ std::shared_ptr<Response> BSC_HWReliabilityMonitor::perform_analysis(std::shared
                            (std::chrono::duration<double>(temperatures_vector[t].epoch.time_since_epoch())).count();
             temperature_avg = (temperatures_vector[t].temperature + temperatures_vector[t + 1].temperature) / 2;
             acceleration_factor_ld = getAccelerationFactor(temperature_avg);
-            fit_calculated = getFIT(fit_previous,this->fitOriginalMEM, getPastSecondMEM(), (double)mem_request->get_occupancy()/1000 , 
-                                    second_chunk, acceleration_factor_ld);
+            fit_calculated = 0; /*reset*/
+
+            /* mv and lastDIMM has same size*/
+            for(int dimm=0;dimm<mv.size();dimm++){
+               /*
+                    if the dimm is enabled proceed to calculare FIT
+                */
+               if(mv[dimm].enable == true){-
+                    fit_previous =  this->last_DIMM[dimm];
+                    this->last_DIMM[dimm]=getFIT(fit_previous,
+                                        this->fitOriginalMEM, 
+                                        getPastSecondMEM(), 
+                                        (double)getMemoryUsage(mv, mem_request->get_band_per_skt(), second_chunk,dimm) * 1000, 
+                                        second_chunk, 
+                                        acceleration_factor_ld);
+
+                    fit_calculated = fit_calculated +  this->last_DIMM[dimm];
+               }
+            }
             prob = getCompressProbability(fit_calculated, getPastSecondMEM() + second_chunk);
-            this->lastProbMEM = prob * 1000;
+            this->lastProbMEM = (prob * 1000);
             fail_probability = (float)(prob * 1000);
             incrementPastSecond(second_chunk,mem_request->get_resource_type(),mem_request->get_technology_type());
-            fit_previous = fit_calculated;
      
         }
         
@@ -865,6 +887,56 @@ long double BSC_HWReliabilityMonitor::getFit_processing(std::vector<core> cv, un
 
             return fit_processing;
     
+}
+
+double BSC_HWReliabilityMonitor::getMemoryUsage(std::vector<memory>mv , 
+                                                unsigned long long band_skt_max ,
+                                                unsigned long long second_chunk ,
+                                                int index
+                                                )
+{   
+
+   double usage = 0;
+   unsigned long long band_actual = 0;
+   int skt_id = 0;
+
+   for(int i=0;i<mv.size();i++){
+       if(index == i ){ 
+           skt_id = mv[i].skt_id;
+           for(int counter=0;counter<mv[i].counter.size();counter++){
+                if(mv[i].counter[counter].get_type() == perf_counter_type_t::CAS_READ ||
+                    mv[i].counter[counter].get_type() == perf_counter_type_t::CAS_WRITE
+                    ){
+                        band_actual += (unsigned long long)mv[i].counter[counter].get_value() * 64;
+                    }
+            }
+       }
+   }
+
+    band_actual = band_actual / second_chunk;
+    usage = (double)band_actual / getBandPerDIMM(mv,band_skt_max,skt_id);
+   
+   // std::cout << "Band Usata : " << band_actual << " , Banda MAssima : " <<  getBandPerDIMM(mv,band_skt_max,skt_id) << std::endl;
+
+    return usage;   
+}
+
+
+unsigned long long  BSC_HWReliabilityMonitor::getBandPerDIMM(std::vector<memory>mv,unsigned long long band_skt_max, int skt_id){
+
+    unsigned long long value = 0;
+    int dimms = 0;
+
+    for(int i=0;i<mv.size();i++){
+        if(mv[i].skt_id == skt_id){
+            dimms++;
+        }
+    }
+
+
+    value = band_skt_max / dimms;
+
+    return value;
 }
 
 }

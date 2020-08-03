@@ -24,7 +24,10 @@ enum class perf_counter_type_t {
     UOPS_RETIRED, //0XC202
     UOPS_ISSUED_ANY, //0X0E01
 
-    CYCLES
+    CYCLES,
+
+    CAS_READ,   //event = 0x4 umask=0x3  
+    CAS_WRITE   //event = 0x4 umask=0xC
 
 };
 

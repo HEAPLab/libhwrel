@@ -65,6 +65,12 @@ private:
      std::vector<long double> last_fitL2;
      std::vector<long double> last_fitL3;
 
+     /*
+        last fit per DIMM in the system
+     */
+     std::vector<long double> last_DIMM;
+
+
      long double lastProbCPU;
      long double lastProbMEM;
      long double lastProbGPU;
@@ -122,7 +128,15 @@ private:
     int getSMT(int skt, std::vector<core> &cv);
     std::vector<int> getSocketVector(std::vector<core> v);
     void removeSMT(std::vector<core> &cv);
-	
+
+
+    double getMemoryUsage(std::vector<memory> mv,  
+                            unsigned long long band_skt_max  ,
+                            unsigned long long second_chunk ,
+                            int index);
+    unsigned long long  getBandPerDIMM(std::vector<memory>mv,
+                                        unsigned long long band_skt_max, 
+                                        int skt_id);
 	
 	/*debug*/
     void stamp(std::vector<core> c);

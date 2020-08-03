@@ -63,6 +63,19 @@ struct core{
 };
 
 
+/*
+    Struct to keep info to each DIMM of the memory. 
+*/
+
+struct memory{
+    unsigned int dimm_id; /* id to define a DIMM in the system*/
+    unsigned int skt_id;  /* id of the socket to which the dimm is associated */
+    bool enable;          /* true if the dimm is pysically in the system. If it plugged.
+                             false if it is empty */
+    std::vector<PerfCounter> counter; /*counter of the DIMM; */
+};
+
+
 /** 
  * @brief The struct containing the failure probability previously provided by the the HW monitor.
  * 
@@ -232,14 +245,25 @@ public:
      * @param size      The size in MB
      * @param occupancy The level of occupancy for the memory in per-mille format (0-1000). The
      *                  value 1000 means 100%.
+     * @param dimm      number max of dimm handled by CPU SKT
+     * @param skt       number of socket in the system
+     * @param band_skt_max  maximum value of bandwith supported by the CPU SKT, supposing
+     *                      the DIMM provided max perfomance. If property maxinum bandwithc
+     *                      of DIMM are available set this. But CPU SKT vision.
+     * 
      * @throw std::invalid_argument If occupancy > 1000.
       */
-    RequestMEM(technology_type_t tech_type, unsigned int size, unsigned int occupancy)
+    RequestMEM(technology_type_t tech_type, unsigned int size, unsigned int occupancy,
+                std::vector<memory> mem_vector,
+                unsigned long long  band_skt_max
+                )
     : Request(resource_type_t::MEMORY, tech_type), size(size), occupancy(occupancy) 
     {
         if(occupancy > 1000) {
             throw std::invalid_argument("Occupancy invalid value (>1).");
         }
+        this->band_skt_max = band_skt_max;
+        std::copy(mem_vector.begin(), mem_vector.end(), back_inserter(this->mem_vector));    
     }
 
     /**
@@ -265,9 +289,23 @@ public:
         this->occupancy = occupancy;
     }
 
+    std::vector<memory> getMemVector(){
+        return this->mem_vector;
+    }
+    
+    inline unsigned long long  get_band_per_skt() const noexcept {
+        return this->band_skt_max;
+    }
+
+
 private:
     const unsigned int size;     // in MiB
     unsigned short occupancy;    // 0-1000
+
+    unsigned long long band_skt_max;        /* Max bandwith per socket*/
+    std::vector<memory> mem_vector;         /* info about memory system*/
+
+
 };
 
 /** 
