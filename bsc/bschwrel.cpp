@@ -193,7 +193,7 @@ std::shared_ptr<Response> BSC_HWReliabilityMonitor::perform_analysis(std::shared
                /*
                     if the dimm is enabled proceed to calculare FIT
                 */
-               if(mv[dimm].enable == true){-
+               if(mv[dimm].enable == true){
                     fit_previous =  this->last_DIMM[dimm];
                     this->last_DIMM[dimm]=getFIT(fit_previous,
                                         this->fitOriginalMEM, 

@@ -27,8 +27,14 @@ enum class perf_counter_type_t {
     CYCLES,
 
     CAS_READ,   //event = 0x4 umask=0x3  
-    CAS_WRITE   //event = 0x4 umask=0xC
+    CAS_WRITE,   //event = 0x4 umask=0xC
 
+    /*
+        For temperature counter
+        value = counter_bits[22:16]
+    */
+    TEMPERATURE_SKT, //0x01B1  
+    TEMPERATURE_CORE //0x019C  
 };
 
 
