@@ -32,7 +32,7 @@ namespace libhwrel {
 enum class resource_type_t {
     CPU,        ///< General Purpose CPU
     GPU,        ///< GPGPU
-    MEMORY        ///< Memory (usually DRAM)
+    MEMORY      ///< Memory (usually DRAM)
 };
 
 /** 
@@ -41,40 +41,13 @@ enum class resource_type_t {
  * This enum represents the possible values for the technology used to build the specific resource.
  */
 enum class technology_type_t {
-    SILICON,    /**< Custom ASIC chip */
-    FPGA        /**< FPGA-implemented resource */
+    SILICON,    ///< Custom ASIC chip
+    FPGA        ///< FPGA-implemented resource
 };
 
 //
 // ------------------------------------ STRUCTS ------------------------------------ 
 //
-
-/**
- * @brief The struct containg the mapping between the logical core with its physical core
- * and its socket
-*/
-
-struct core{
-    unsigned int id_logical;
-    unsigned int id_physical;
-    unsigned int id_socket;
-    std::vector<PerfCounter> counter;
-
-};
-
-
-/*
-    Struct to keep info to each DIMM of the memory. 
-*/
-
-struct memory{
-    unsigned int dimm_id; /* id to define a DIMM in the system*/
-    unsigned int skt_id;  /* id of the socket to which the dimm is associated */
-    bool enable;          /* true if the dimm is pysically in the system. If it plugged.
-                             false if it is empty */
-    std::vector<PerfCounter> counter; /*counter of the DIMM; */
-};
-
 
 /** 
  * @brief The struct containing the failure probability previously provided by the the HW monitor.
@@ -245,8 +218,6 @@ public:
      * @param size      The size in MB
      * @param occupancy The level of occupancy for the memory in per-mille format (0-1000). The
      *                  value 1000 means 100%.
-     * @param dimm      number max of dimm handled by CPU SKT
-     * @param skt       number of socket in the system
      * @param band_skt_max  maximum value of bandwith supported by the CPU SKT, supposing
      *                      the DIMM provided max perfomance. If property maxinum bandwithc
      *                      of DIMM are available set this. But CPU SKT vision.
@@ -254,16 +225,13 @@ public:
      * @throw std::invalid_argument If occupancy > 1000.
       */
     RequestMEM(technology_type_t tech_type, unsigned int size, unsigned int occupancy,
-                std::vector<memory> mem_vector,
                 unsigned long long  band_skt_max
                 )
-    : Request(resource_type_t::MEMORY, tech_type), size(size), occupancy(occupancy) 
+    : Request(resource_type_t::MEMORY, tech_type), size(size), occupancy(occupancy), band_skt_max(band_skt_max)
     {
         if(occupancy > 1000) {
             throw std::invalid_argument("Occupancy invalid value (>1).");
         }
-        this->band_skt_max = band_skt_max;
-        std::copy(mem_vector.begin(), mem_vector.end(), back_inserter(this->mem_vector));    
     }
 
     /**
@@ -289,11 +257,8 @@ public:
         this->occupancy = occupancy;
     }
 
-    std::vector<memory> getMemVector(){
-        return this->mem_vector;
-    }
     
-    inline unsigned long long  get_band_per_skt() const noexcept {
+    inline unsigned long long get_band_per_skt() const noexcept {
         return this->band_skt_max;
     }
 
@@ -303,8 +268,6 @@ private:
     unsigned short occupancy;    // 0-1000
 
     unsigned long long band_skt_max;        /* Max bandwith per socket*/
-    std::vector<memory> mem_vector;         /* info about memory system*/
-
 
 };
 
@@ -312,76 +275,42 @@ private:
  * @brief The specialied Request class for CPUs.
  *
  */
-class RequestCPU : public Request {
+class RequestCPUCore : public Request {
 public:
 
     /**
      * @brief The RequestCPU class constructor
      * @param tech_type The type of technology
      * @param clock_frequency The clock frequency in MHz
-     * @param nr_cores The number of physical processing elements.
-     * @param activity The activity level of the whole CPU in per-mille format (0-1000). The
-     *                  value 1000 means 100% (all cores).
-     * @param cores_vector The information of logical, physica cores with its id socket. The 
-     *                   first value of vector should be the logical core 0 and so on.
-     * @throw std::invalid_argument If activity > 1000.
-     * @throw std::invalid_argument Error core vector assignment.
       */
-    RequestCPU(technology_type_t tech_type, unsigned int clock_frequency, unsigned int nr_cores,
-           unsigned int activity, std::vector<core> core_vector)
-    : Request(resource_type_t::CPU, tech_type), clock_frequency(clock_frequency), 
-      nr_cores(nr_cores), activity(activity)
+    RequestCPUCore(technology_type_t tech_type, unsigned int clock_frequency) noexcept
+    : Request(resource_type_t::CPU, tech_type), clock_frequency(clock_frequency)
     {
-        if(activity > 1000) {
-            throw std::invalid_argument("Activity invalid value (>1).");
-        }
-      std::copy(core_vector.begin(), core_vector.end(), back_inserter(this->cores_vector));    
+
     }
     
 
     /**
      * @brief The default virtual destructor (no dynamic memory used)
       */
-    virtual ~RequestCPU() = default;
+    virtual ~RequestCPUCore() = default;
 
     /** @brief Getter for the clock frequency in MHz. */
-    inline unsigned int get_clock_frequency() const {
+    inline unsigned int get_clock_frequency() const noexcept {
         return this->clock_frequency;
     }
 
-    inline unsigned short get_activity(){
-        return this->activity;
-    }
     /** 
      * @brief Setter for the clock frequency in MHz. 
      * @note This method should be used by the Resource Manager only!
      */
-    inline void set_clock_frequency(unsigned int clock_frequency) {
+    inline void set_clock_frequency(unsigned int clock_frequency) noexcept {
         this->clock_frequency = clock_frequency;
     }
 
-    /** @brief Getter for the number of cores. */
-    inline unsigned int get_nr_cores() const {
-        return this->nr_cores;
-    }
-    /**
-     * @brief Setter for the number of cores.
-     * @note This method should be used by the Resource Manager only!
-     */
-    inline void set_nr_cores(unsigned int nr_cores) {
-        this->nr_cores = nr_cores;
-    }
-
-    std::vector<core> getCoreVector(){
-        return this->cores_vector;
-    }
 
 private:
     unsigned int clock_frequency;   ///< The clock frequency in MHz
-    unsigned short nr_cores;    ///< The number of cores
-    unsigned short activity;    ///< The per-mille value of current activity
-
-    std::vector<core> cores_vector; ///< vector of struct core
 };
 
 /** 
