@@ -55,10 +55,12 @@ enum class technology_type_t {
  * This struct contains the failure probability previously returned by the HW reliability monitor,
  * together with the time point when it was generated.
  */
-struct previous_reliability_t {
-    float failure_probability;          /**< The failure probability in
-                                                   per-mille format (0-1000) */
+struct reliability_state_t {
     std::chrono::time_point<std::chrono::system_clock> epoch;
+    long double failure_probability;          /**< The failure probability of failure/hour */
+    
+    std::shared_ptr<void> state;
+    size_t state_size;
 };
 
 /**
@@ -89,23 +91,28 @@ class Response {
 public:
     /**
      * @brief The class constructor
-     * @param failure_probability The failure probability in 0-1000 per-mille format (e.g.
-     *                            10 means 0.001).
-     * @throw std::invalid_argument If failure_probability < 0 or failure_probability > 1000.
+     * @param state The state (containing the failure probability)
+     * @throw std::invalid_argument If state.failure_probability < 0 or state.failure_probability > 1000.
       */
-    Response(float failure_probability) : fail_probability(failure_probability) {
-        if(failure_probability > 1000.0 || failure_probability < 0.0) {
+    Response(const reliability_state_t &state) : state(state) {
+        if(state.failure_probability > 1000.0 || state.failure_probability < 0.0) {
             throw std::invalid_argument("Failure probability invalid value (>1000 or <0).");
         }
     }
 
     /** @brief Getter for the failure probability */
-    inline float get_fail_probability() const noexcept {
-        return this->fail_probability;
+    float get_fail_probability() const noexcept {
+        return this->state.failure_probability;
     }
 
+    /** @brief Getter for the state */
+    reliability_state_t get_state() const noexcept {
+        return this->state;
+    }
+    
+
 private:
-    const float fail_probability;    // 0-1000 in per mille
+    reliability_state_t state;
 
 };
 
@@ -156,12 +163,12 @@ public:
 
     /** @brief Getter for the previous state returned by the HW reliability monitor. If the `epoch`
       *        of the previous state is 0, it should be interpret as no previous state exists. */
-    previous_reliability_t get_previous_state() const noexcept {
+    reliability_state_t get_state() const noexcept {
         return this->prev_state;
     }
 
     /** @brief Setter for the previous state returned by the HW reliability monitor */
-    void set_previous_state(previous_reliability_t prev_state) noexcept {
+    void set_state(reliability_state_t prev_state) noexcept {
         this->prev_state = prev_state;
     }
 
@@ -201,7 +208,7 @@ private:
 
     std::vector<temperature_t> temperatures;
 
-    previous_reliability_t prev_state;
+    reliability_state_t prev_state;
 
 };
 
@@ -215,23 +222,16 @@ public:
     /**
      * @brief The RequestMEM class constructor
      * @param tech_type The type of technology
-     * @param size      The size in MB
-     * @param occupancy The level of occupancy for the memory in per-mille format (0-1000). The
-     *                  value 1000 means 100%.
      * @param band_skt_max  maximum value of bandwith supported by the CPU SKT, supposing
      *                      the DIMM provided max perfomance. If property maxinum bandwithc
-     *                      of DIMM are available set this. But CPU SKT vision.
+     *                      of DIMM are available set this. But CPU SKT vision. [B/s]
      * 
      * @throw std::invalid_argument If occupancy > 1000.
       */
-    RequestMEM(technology_type_t tech_type, unsigned int size, unsigned int occupancy,
-                unsigned long long  band_skt_max
-                )
-    : Request(resource_type_t::MEMORY, tech_type), size(size), occupancy(occupancy), band_skt_max(band_skt_max)
+    RequestMEM(technology_type_t tech_type, unsigned long long  band_skt_max)
+    : Request(resource_type_t::MEMORY, tech_type), band_skt_max(band_skt_max)
     {
-        if(occupancy > 1000) {
-            throw std::invalid_argument("Occupancy invalid value (>1).");
-        }
+
     }
 
     /**
@@ -239,40 +239,20 @@ public:
       */
     virtual ~RequestMEM() = default;
 
-    /** @brief Getter for the size in MB. This value is always constant. */
-    inline unsigned int get_size() const noexcept {
-        return this->size;
-    }
 
-    /** @brief Getter for the occupancy. The level of occupancy for the memory in per-mille format (0-1000).  */
-    inline unsigned short get_occupancy() const noexcept {
-        return this->occupancy;
-    }
-
-    /**
-     * @brief Setter for the occupancy. The level of occupancy for the memory in per-mille format (0-1000).
-     * @note This should be used by the Resource Manager only!
-     */
-    inline void set_occupancy(unsigned int occupancy) noexcept {
-        this->occupancy = occupancy;
-    }
-
-    
     inline unsigned long long get_band_per_skt() const noexcept {
         return this->band_skt_max;
     }
 
 
 private:
-    const unsigned int size;     // in MiB
-    unsigned short occupancy;    // 0-1000
 
     unsigned long long band_skt_max;        /* Max bandwith per socket*/
 
 };
 
 /** 
- * @brief The specialied Request class for CPUs.
+ * @brief The specialied Request class for *one single physical core* of the CPU.
  *
  */
 class RequestCPUCore : public Request {
@@ -283,8 +263,8 @@ public:
      * @param tech_type The type of technology
      * @param clock_frequency The clock frequency in MHz
       */
-    RequestCPUCore(technology_type_t tech_type, unsigned int clock_frequency) noexcept
-    : Request(resource_type_t::CPU, tech_type), clock_frequency(clock_frequency)
+    RequestCPUCore(technology_type_t tech_type) noexcept
+    : Request(resource_type_t::CPU, tech_type)
     {
 
     }
@@ -295,22 +275,8 @@ public:
       */
     virtual ~RequestCPUCore() = default;
 
-    /** @brief Getter for the clock frequency in MHz. */
-    inline unsigned int get_clock_frequency() const noexcept {
-        return this->clock_frequency;
-    }
-
-    /** 
-     * @brief Setter for the clock frequency in MHz. 
-     * @note This method should be used by the Resource Manager only!
-     */
-    inline void set_clock_frequency(unsigned int clock_frequency) noexcept {
-        this->clock_frequency = clock_frequency;
-    }
-
 
 private:
-    unsigned int clock_frequency;   ///< The clock frequency in MHz
 };
 
 /** 
@@ -441,6 +407,11 @@ public:
      * @brief The main method to be implemented that will perform the analysis.
      */
     virtual std::shared_ptr<Response> perform_analysis(std::shared_ptr<Request> req) = 0;
+
+    /**
+     * @brief Initialize the reliability monitor and return the initial state
+     */
+    virtual reliability_state_t init(resource_type_t, technology_type_t, long double initial_fit, unsigned int nr_cores=0) = 0;
 
 };
 
