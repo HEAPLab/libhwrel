@@ -5,6 +5,11 @@ namespace libhwrel {
 
 enum class perf_counter_type_t {
     
+    /**
+     *  Need to be aggregate by core physical
+     * 
+     */
+
     L1I_HIT, //0x8301
     L1I_MISS, //0x8302
     L2_RQST_MISS , //x0243f
@@ -24,8 +29,19 @@ enum class perf_counter_type_t {
     UOPS_RETIRED, //0XC202
     UOPS_ISSUED_ANY, //0X0E01
 
-    CYCLES,
+    /*
+    * Need to be max of cpu logical 0 
+    * and cpu logical 1. Elapsed since time 0
+    * to time 1. 
+    */
 
+    CYCLES, 
+
+
+    /*
+    *   Should be the sum of all values CAS_READ and
+    *   CAS_WRITE for a whole socket.
+    */
     CAS_READ,   //event = 0x4 umask=0x3  
     CAS_WRITE,   //event = 0x4 umask=0xC
 
@@ -34,7 +50,27 @@ enum class perf_counter_type_t {
         value = counter_bits[22:16]
     */
     TEMPERATURE_SKT, //0x01B1  
-    TEMPERATURE_CORE //0x019C  
+    TEMPERATURE_CORE, //0x019C  
+
+
+    /*
+    * 
+    * General Purpose Graphics Processing Unit 
+    * GPU
+    *  The values are from 0 to 10 
+    *  issue_slot_utilization need to be converted to same format
+    */
+    single_precision_fu_utilization,
+    half_precision_fu_utlization,
+    double_precision_fu_utilization,
+    ldst_fu_utilization,
+    special_fu_utilization,
+    issue_slot_utilization , 
+    tex_utilization,
+    shared_utilization,
+    l2_utilization,
+    dram_utilization
+    
 };
 
 

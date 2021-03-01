@@ -32,6 +32,7 @@ namespace libhwrel {
 enum class resource_type_t {
     CPU,        ///< General Purpose CPU
     GPU,        ///< GPGPU
+    MEMORY_GPU,    ///< GPGPU MEMORY
     MEMORY      ///< Memory (usually DRAM)
 };
 
@@ -57,7 +58,7 @@ enum class technology_type_t {
  */
 struct reliability_state_t {
     std::chrono::time_point<std::chrono::system_clock> epoch;
-    long double failure_probability;          /**< The failure probability of failure/hour */
+    long double failure_probability;          /**< The failure probability CDF on 1000% */
     
     std::shared_ptr<void> state;
     size_t state_size;
@@ -94,11 +95,14 @@ public:
      * @param state The state (containing the failure probability)
      * @throw std::invalid_argument If state.failure_probability < 0 or state.failure_probability > 1000.
       */
+
+
     Response(const reliability_state_t &state) : state(state) {
         if(state.failure_probability > 1000.0 || state.failure_probability < 0.0) {
             throw std::invalid_argument("Failure probability invalid value (>1000 or <0).");
         }
     }
+
 
     /** @brief Getter for the failure probability */
     float get_fail_probability() const noexcept {
@@ -226,6 +230,7 @@ public:
      *                      the DIMM provided max perfomance. If property maxinum bandwithc
      *                      of DIMM are available set this. But CPU SKT vision. [B/s]
      * 
+     * 
      * @throw std::invalid_argument If occupancy > 1000.
       */
     RequestMEM(technology_type_t tech_type, unsigned long long  band_skt_max)
@@ -245,9 +250,48 @@ public:
     }
 
 
+
+private:
+    unsigned long long band_skt_max;        /* Max bandwith per socket*/
+
+};
+
+
+/** 
+ * @brief The specialied Request class for memories gpu.
+ *
+ */
+class RequestMEM_GPU : public Request {
+public:
+
+    /**
+     * @brief The RequestMEM class constructor
+     * @param tech_type The type of technology
+     * @param band_max  
+     * 
+     * 
+     * @throw std::invalid_argument If occupancy > 1000.
+      */
+    RequestMEM_GPU(technology_type_t tech_type, unsigned long long  band_max)
+    : Request(resource_type_t::MEMORY_GPU, tech_type), band_max(band_max)
+    {
+
+    }
+
+    /**
+     * @brief The default virtual destructor (no dynamic memory used)
+      */
+    virtual ~RequestMEM_GPU() = default;
+
+
+    inline unsigned long long get_band_per_gpu() const noexcept {
+        return this->band_max;
+    }
+
+
 private:
 
-    unsigned long long band_skt_max;        /* Max bandwith per socket*/
+    unsigned long long band_max;        /* Max bandwith per gpu*/
 
 };
 
@@ -263,13 +307,19 @@ public:
      * @param tech_type The type of technology
      * @param clock_frequency The clock frequency in MHz
       */
-    RequestCPUCore(technology_type_t tech_type) noexcept
+    RequestCPUCore(technology_type_t tech_type , unsigned int clock_frequency) noexcept
     : Request(resource_type_t::CPU, tech_type)
     {
-
+        this->clock_frequency = clock_frequency ; 
     }
     
+    void set_clock_frequency( unsigned int clock_frequency){
+        this->clock_frequency = clock_frequency; 
+    }
 
+    inline unsigned int get_clock_frequency() const noexcept {
+        return this->clock_frequency ; 
+    }
     /**
      * @brief The default virtual destructor (no dynamic memory used)
       */
@@ -277,6 +327,8 @@ public:
 
 
 private:
+    unsigned int clock_frequency;
+
 };
 
 /** 
@@ -295,14 +347,13 @@ public:
      *                  value 1000 means 100% (all cores).
      * @throw std::invalid_argument If activity > 1000.
       */
-    RequestGPU(technology_type_t tech_type, unsigned int clock_frequency, unsigned int nr_cores,
-           unsigned int activity)
+    RequestGPU(technology_type_t tech_type, unsigned int clock_frequency)
     : Request(resource_type_t::GPU, tech_type), clock_frequency(clock_frequency), 
-      nr_cores(nr_cores), activity(activity)
+      nr_cores(nr_cores)//, activity(activity)
     {
-        if(activity > 1000) {
-            throw std::invalid_argument("Activity invalid value (>1).");
-        }
+        // if(activity > 1000) {
+        //     throw std::invalid_argument("Activity invalid value (>1).");
+        // }
     }
 
     /**
@@ -315,9 +366,9 @@ public:
         return this->clock_frequency;
     }
 
-    inline unsigned short get_activity(){
-        return this->activity;
-    }
+    // inline unsigned short get_activity(){
+    //     return this->activity;
+    // }
     /** 
      * @brief Setter for the clock frequency in MHz. 
      * @note This method should be used by the Resource Manager only!
@@ -341,7 +392,7 @@ public:
 private:
     unsigned int clock_frequency;   ///< The clock frequency in MHz
     unsigned short nr_cores;    ///< The number of cores
-    unsigned short activity;    ///< The per-mille value of current activity
+    // unsigned short activity;    ///< The per-mille value of current activity
 };
 
 
@@ -411,7 +462,7 @@ public:
     /**
      * @brief Initialize the reliability monitor and return the initial state
      */
-    virtual reliability_state_t init(resource_type_t, technology_type_t, long double initial_fit, unsigned int nr_cores=0) = 0;
+    virtual reliability_state_t init(resource_type_t resource, technology_type_t tech, long double initial_fit, unsigned int nr_cores=0) = 0;
 
 };
 
