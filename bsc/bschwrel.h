@@ -54,6 +54,36 @@ private:
         unsigned long long second_past;
     };
 
+    struct gpu {
+        
+        int bl_size = 8;
+
+        long double original_fit_CUDA_CORE;
+        long double original_fit_slot_instr;
+        long double original_fit_DP_CORE;
+        long double original_fit_SFU_CORE;
+        long double original_fit_LDST_CORE;
+        long double original_fit_L1_unified;
+        long double original_fit_shared_sm;
+        long double original_fit_l2;
+        
+        long double last_fit_CUDA_CORE;
+        long double last_fit_slot_instr;
+        long double last_fit_DP_CORE;
+        long double last_fit_SFU_CORE;
+        long double last_fit_LDST_CORE;
+        long double last_fit_L1_unified;
+        long double last_fit_shared_sm;
+        long double last_fit_l2;
+        
+        unsigned long long second_past;
+    };
+
+    struct gpu_mem {
+        long double last_fitGPU_MEM;
+        long double original_fitGPU_MEM;
+        unsigned long long second_past;
+    };
 
 
 
