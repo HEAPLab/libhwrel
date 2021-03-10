@@ -267,13 +267,15 @@ public:
     /**
      * @brief The RequestMEM class constructor
      * @param tech_type The type of technology
-     * @param band_max  
+     * @param band_max
+     * @param runtime_mode If true, it uses the approximate mode (by considering only the MEMORY_UTILIZATION
+     *                     counter). Otherwise, it uses the whole set of counters.
      * 
      * 
      * @throw std::invalid_argument If occupancy > 1000.
       */
-    RequestMEM_GPU(technology_type_t tech_type, unsigned long long  band_max)
-    : Request(resource_type_t::MEMORY_GPU, tech_type), band_max(band_max)
+    RequestMEM_GPU(technology_type_t tech_type, unsigned long long  band_max, bool runtime_mode)
+    : Request(resource_type_t::MEMORY_GPU, tech_type), band_max(band_max), runtime_mode(runtime_mode)
     {
 
     }
@@ -288,9 +290,12 @@ public:
         return this->band_max;
     }
 
+    inline bool get_runtime_mode() const {
+        return this->runtime_mode;
+    }
 
 private:
-
+    bool runtime_mode;
     unsigned long long band_max;        /* Max bandwith per gpu*/
 
 };
@@ -342,14 +347,12 @@ public:
      * @brief The RequestCPU class constructor
      * @param tech_type The type of technology
      * @param clock_frequency The clock frequency in MHz
-     * @param nr_cores The number of physical processing elements.
-     * @param activity The activity level of the whole CPU in per-mille format (0-1000). The
-     *                  value 1000 means 100% (all cores).
+     * @param runtime_mode If true, it uses the approximate mode (by considering only the GPU_UTILIZATION
+     *                     counter). Otherwise, it uses the whole set of counters  
      * @throw std::invalid_argument If activity > 1000.
       */
     RequestGPU(technology_type_t tech_type, unsigned int clock_frequency)
-    : Request(resource_type_t::GPU, tech_type), clock_frequency(clock_frequency), 
-      nr_cores(nr_cores)//, activity(activity)
+    : Request(resource_type_t::GPU, tech_type), clock_frequency(clock_frequency), runtime_mode(runtime_mode)
     {
         // if(activity > 1000) {
         //     throw std::invalid_argument("Activity invalid value (>1).");
@@ -376,23 +379,15 @@ public:
     inline void set_clock_frequency(unsigned int clock_frequency) {
         this->clock_frequency = clock_frequency;
     }
+    
+    inline bool get_runtime_mode() const {
+        return this->runtime_mode;
+    }
 
-    /** @brief Getter for the number of cores. */
-    inline unsigned int get_nr_cores() const {
-        return this->nr_cores;
-    }
-    /**
-     * @brief Setter for the number of cores.
-     * @note This method should be used by the Resource Manager only!
-     */
-    inline void set_nr_cores(unsigned int nr_cores) {
-        this->nr_cores = nr_cores;
-    }
 
 private:
     unsigned int clock_frequency;   ///< The clock frequency in MHz
-    unsigned short nr_cores;    ///< The number of cores
-    // unsigned short activity;    ///< The per-mille value of current activity
+    bool runtime_mode;
 };
 
 

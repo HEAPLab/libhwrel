@@ -60,16 +60,19 @@ enum class perf_counter_type_t {
     *  The values are from 0 to 10 
     *  issue_slot_utilization need to be converted to same format
     */
-    single_precision_fu_utilization,
-    half_precision_fu_utlization,
-    double_precision_fu_utilization,
-    ldst_fu_utilization,
-    special_fu_utilization,
-    issue_slot_utilization , 
-    tex_utilization,
-    shared_utilization,
-    l2_utilization,
-    dram_utilization
+    SINGLE_PRECISION_FU_UTILIZATION,
+    HALF_PRECISION_FU_UTILIZATION,
+    DOUBLE_PRECISION_FU_UTILIZATION,
+    LDST_FU_UTILIZATION,
+    SPECIAL_FU_UTILIZATION,
+    ISSUE_SLOT_UTILIZATION,
+    TEX_UTILIZATION,
+    SHARED_UTILIZATION,
+    L2_UTILIZATION,
+    DRAM_UTILIZATION,
+    
+    GPU_UTILIZATION,
+    MEMORY_UTILIZATION
     
 };
 

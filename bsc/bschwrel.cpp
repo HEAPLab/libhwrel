@@ -375,15 +375,15 @@ std::shared_ptr<Response> BSC_HWReliabilityMonitor::perform_analysis(std::shared
         
         seconds_past_loc  =  (*state_prev).second_past;
 
-        long double CC_SP_utilization = ((long double) gpu_request->get_PC(perf_counter_type_t::single_precision_fu_utilization).get_value())/10;
-        long double CC_FP_utlization = ((long double) gpu_request->get_PC(perf_counter_type_t::half_precision_fu_utlization).get_value())/10;
-        long double DP_utilization = ((long double) gpu_request->get_PC(perf_counter_type_t::double_precision_fu_utilization).get_value())/10;
-        long double LDST_utilization = ((long double) gpu_request->get_PC(perf_counter_type_t::ldst_fu_utilization).get_value())/10;
-        long double SFU_utilization = ((long double) gpu_request->get_PC(perf_counter_type_t::special_fu_utilization).get_value())/10;
-        long double SLOT_utilization = ((long double) gpu_request->get_PC(perf_counter_type_t::issue_slot_utilization).get_value())/10;
-        long double L1_uni_utilization = ((long double) gpu_request->get_PC(perf_counter_type_t::tex_utilization).get_value())/10;
-        long double SH_utilization = ((long double) gpu_request->get_PC(perf_counter_type_t::shared_utilization).get_value())/10;
-        long double l2_utilization = ((long double) gpu_request->get_PC(perf_counter_type_t::l2_utilization).get_value())/10;
+        long double CC_SP_utilization = ((long double) gpu_request->get_PC(perf_counter_type_t::SINGLE_PRECISION_FU_UTILIZATION).get_value())/10;
+        long double CC_FP_utlization = ((long double) gpu_request->get_PC(perf_counter_type_t::HALF_PRECISION_FU_UTILIZATION).get_value())/10;
+        long double DP_utilization = ((long double) gpu_request->get_PC(perf_counter_type_t::DOUBLE_PRECISION_FU_UTILIZATION).get_value())/10;
+        long double LDST_utilization = ((long double) gpu_request->get_PC(perf_counter_type_t::LDST_FU_UTILIZATION).get_value())/10;
+        long double SFU_utilization = ((long double) gpu_request->get_PC(perf_counter_type_t::SPECIAL_FU_UTILIZATION).get_value())/10;
+        long double SLOT_utilization = ((long double) gpu_request->get_PC(perf_counter_type_t::ISSUE_SLOT_UTILIZATION).get_value())/10;
+        long double L1_uni_utilization = ((long double) gpu_request->get_PC(perf_counter_type_t::TEX_UTILIZATION).get_value())/10;
+        long double SH_utilization = ((long double) gpu_request->get_PC(perf_counter_type_t::SHARED_UTILIZATION).get_value())/10;
+        long double l2_utilization = ((long double) gpu_request->get_PC(perf_counter_type_t::L2_UTILIZATION).get_value())/10;
         
         long double CC_acf = CC_SP_utilization + CC_FP_utlization ;
         if( CC_acf > 1.0 ) CC_acf = 1.0;
@@ -448,7 +448,7 @@ std::shared_ptr<Response> BSC_HWReliabilityMonitor::perform_analysis(std::shared
              *  from 0 to 10 
              */
 
-            int dram_utilization = (int) mem_gpu_request->get_PC(perf_counter_type_t::dram_utilization).get_value();
+            int dram_utilization = (int) mem_gpu_request->get_PC(perf_counter_type_t::DRAM_UTILIZATION).get_value();
 
             for (int t = 0; t < temperatures_vector.size() - 1; t++)
             {
