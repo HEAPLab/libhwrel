@@ -71,8 +71,12 @@ enum class perf_counter_type_t {
     L2_UTILIZATION,
     DRAM_UTILIZATION,
     
+
+    /*
+    * 0 to 100
+    */
     GPU_UTILIZATION,
-    MEMORY_UTILIZATION
+    MEMORY_UTILIZATION 
     
 };
 

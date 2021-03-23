@@ -369,24 +369,35 @@ std::shared_ptr<Response> BSC_HWReliabilityMonitor::perform_analysis(std::shared
         std::shared_ptr<RequestGPU> gpu_request = std::dynamic_pointer_cast<RequestGPU>(req);
         auto &temperatures_vector = gpu_request->get_temperatures();
         fail_probability_previous = gpu_request->get_state().failure_probability;
-        
+        bool runtime = gpu_request->get_runtime_mode();
+
         gpu * state_prev = (gpu * ) gpu_request->get_state().state.get();
         gpu gpu_actual = (*state_prev); 
         
         seconds_past_loc  =  (*state_prev).second_past;
 
-        long double CC_SP_utilization = ((long double) gpu_request->get_PC(perf_counter_type_t::SINGLE_PRECISION_FU_UTILIZATION).get_value())/10;
-        long double CC_FP_utlization = ((long double) gpu_request->get_PC(perf_counter_type_t::HALF_PRECISION_FU_UTILIZATION).get_value())/10;
-        long double DP_utilization = ((long double) gpu_request->get_PC(perf_counter_type_t::DOUBLE_PRECISION_FU_UTILIZATION).get_value())/10;
-        long double LDST_utilization = ((long double) gpu_request->get_PC(perf_counter_type_t::LDST_FU_UTILIZATION).get_value())/10;
-        long double SFU_utilization = ((long double) gpu_request->get_PC(perf_counter_type_t::SPECIAL_FU_UTILIZATION).get_value())/10;
-        long double SLOT_utilization = ((long double) gpu_request->get_PC(perf_counter_type_t::ISSUE_SLOT_UTILIZATION).get_value())/10;
-        long double L1_uni_utilization = ((long double) gpu_request->get_PC(perf_counter_type_t::TEX_UTILIZATION).get_value())/10;
-        long double SH_utilization = ((long double) gpu_request->get_PC(perf_counter_type_t::SHARED_UTILIZATION).get_value())/10;
-        long double l2_utilization = ((long double) gpu_request->get_PC(perf_counter_type_t::L2_UTILIZATION).get_value())/10;
-        
+
+        /*
+        * Not runtime values 
+        */
+        long double CC_SP_utilization = runtime ? 0 : ((long double) gpu_request->get_PC(perf_counter_type_t::SINGLE_PRECISION_FU_UTILIZATION).get_value())/10 ;
+        long double CC_FP_utlization =  runtime ? 0 : ((long double) gpu_request->get_PC(perf_counter_type_t::HALF_PRECISION_FU_UTILIZATION).get_value())/10;
+        long double DP_utilization = runtime ? 0 : ((long double) gpu_request->get_PC(perf_counter_type_t::DOUBLE_PRECISION_FU_UTILIZATION).get_value())/10;
+        long double LDST_utilization = runtime ? 0 : ((long double) gpu_request->get_PC(perf_counter_type_t::LDST_FU_UTILIZATION).get_value())/10 ;
+        long double SFU_utilization = runtime ? 0 : ((long double) gpu_request->get_PC(perf_counter_type_t::SPECIAL_FU_UTILIZATION).get_value())/10 ;
+        long double SLOT_utilization = runtime ? 0 : ((long double) gpu_request->get_PC(perf_counter_type_t::ISSUE_SLOT_UTILIZATION).get_value())/10 ;
+        long double L1_uni_utilization = runtime ? 0 : ((long double) gpu_request->get_PC(perf_counter_type_t::TEX_UTILIZATION).get_value())/10 ;
+        long double SH_utilization = runtime ? 0 : ((long double) gpu_request->get_PC(perf_counter_type_t::SHARED_UTILIZATION).get_value())/10 ;
+        long double l2_utilization = runtime ? 0 : ((long double) gpu_request->get_PC(perf_counter_type_t::L2_UTILIZATION).get_value())/10 ;
+
         long double CC_acf = CC_SP_utilization + CC_FP_utlization ;
         if( CC_acf > 1.0 ) CC_acf = 1.0;
+
+
+        /*
+        *   Runtime value
+        */
+        long double gpu_utilization = runtime ? ((long double) gpu_request->get_PC(perf_counter_type_t::GPU_UTILIZATION).get_value())/100 : 0;
 
         for (int t = 0; t < temperatures_vector.size() - 1; t++)
         {
@@ -397,24 +408,86 @@ std::shared_ptr<Response> BSC_HWReliabilityMonitor::perform_analysis(std::shared
             acceleration_factor_ld = getAccelerationFactor(temperature_avg);
          
             fit_calculated = 0;
+            
+            if(runtime){
 
-            gpu_actual.last_fit_CUDA_CORE = getFIT( gpu_actual.last_fit_CUDA_CORE,gpu_actual.original_fit_CUDA_CORE,seconds_past_loc,CC_acf, second_chunk, acceleration_factor_ld);
-            gpu_actual.last_fit_DP_CORE = getFIT( gpu_actual.last_fit_DP_CORE,gpu_actual.original_fit_DP_CORE,seconds_past_loc,DP_utilization , second_chunk, acceleration_factor_ld);
-            gpu_actual.last_fit_SFU_CORE = getFIT( gpu_actual.last_fit_SFU_CORE,gpu_actual.original_fit_SFU_CORE,seconds_past_loc,SFU_utilization , second_chunk, acceleration_factor_ld);
-            gpu_actual.last_fit_LDST_CORE = getFIT( gpu_actual.last_fit_LDST_CORE,gpu_actual.original_fit_LDST_CORE,seconds_past_loc,LDST_utilization , second_chunk, acceleration_factor_ld);
-            gpu_actual.last_fit_slot_instr = getFIT( gpu_actual.last_fit_slot_instr,gpu_actual.original_fit_slot_instr,seconds_past_loc,SLOT_utilization , second_chunk, acceleration_factor_ld);
-            gpu_actual.last_fit_L1_unified = getFIT( gpu_actual.last_fit_L1_unified,gpu_actual.original_fit_L1_unified,seconds_past_loc,L1_uni_utilization , second_chunk, acceleration_factor_ld);
-            gpu_actual.last_fit_shared_sm = getFIT( gpu_actual.last_fit_shared_sm,gpu_actual.original_fit_shared_sm,seconds_past_loc,SH_utilization , second_chunk, acceleration_factor_ld);
-            gpu_actual.last_fit_l2 = getFIT( gpu_actual.last_fit_l2,gpu_actual.original_fit_l2,seconds_past_loc,l2_utilization , second_chunk, acceleration_factor_ld);
+                /*
+                * global general previous GPU fit
+                */
+            
+                fit_calculated += gpu_actual.last_fit_CUDA_CORE;
+                fit_calculated += gpu_actual.last_fit_DP_CORE;
+                fit_calculated += gpu_actual.last_fit_SFU_CORE;
+                fit_calculated += gpu_actual.last_fit_LDST_CORE;
+                fit_calculated += gpu_actual.last_fit_slot_instr;
+                fit_calculated += gpu_actual.last_fit_L1_unified;
+                fit_calculated += gpu_actual.last_fit_shared_sm;
+                fit_calculated += gpu_actual.last_fit_l2;
 
-            fit_calculated += gpu_actual.last_fit_CUDA_CORE;
-            fit_calculated += gpu_actual.last_fit_DP_CORE;
-            fit_calculated += gpu_actual.last_fit_SFU_CORE;
-            fit_calculated += gpu_actual.last_fit_LDST_CORE;
-            fit_calculated += gpu_actual.last_fit_slot_instr;
-            fit_calculated += gpu_actual.last_fit_L1_unified;
-            fit_calculated += gpu_actual.last_fit_shared_sm;
-            fit_calculated += gpu_actual.last_fit_l2;
+                /*
+                * proportions fit for every block to general actual fit
+                */
+
+                long double  CUDA_CORE_fit_percentage =  gpu_actual.last_fit_CUDA_CORE / fit_calculated;
+                long double  DP_CORE_fit_percentage =  gpu_actual.last_fit_DP_CORE / fit_calculated;
+                long double  SFU_CORE_fit_percentage =  gpu_actual.last_fit_SFU_CORE / fit_calculated;
+                long double  LDST_CORE_fit_percentage =  gpu_actual.last_fit_LDST_CORE / fit_calculated;
+                long double  slot_instr_fit_percentage =  gpu_actual.last_fit_slot_instr / fit_calculated;
+                long double  L1_unified_fit_percentage =  gpu_actual.last_fit_L1_unified / fit_calculated;
+                long double  shared_fit_percentage =  gpu_actual.last_fit_shared_sm / fit_calculated;
+                long double  L2_fit_percentage =  gpu_actual.last_fit_l2 / fit_calculated;
+
+                long double fit_original_gpu = 0;
+                
+                /*
+                * getting original gpu fit above initial blocks
+                */
+
+                fit_original_gpu += gpu_actual.original_fit_CUDA_CORE;
+                fit_original_gpu += gpu_actual.original_fit_DP_CORE;
+                fit_original_gpu += gpu_actual.original_fit_SFU_CORE;
+                fit_original_gpu += gpu_actual.original_fit_LDST_CORE;
+                fit_original_gpu += gpu_actual.original_fit_slot_instr;
+                fit_original_gpu += gpu_actual.original_fit_L1_unified;
+                fit_original_gpu += gpu_actual.original_fit_shared_sm;
+                fit_original_gpu += gpu_actual.original_fit_l2;
+
+                fit_calculated = getFIT(fit_calculated ,fit_original_gpu ,seconds_past_loc, gpu_utilization, second_chunk, acceleration_factor_ld); 
+
+                /*
+                * saving to maintain same proportions
+                */
+
+                gpu_actual.last_fit_CUDA_CORE = fit_calculated * CUDA_CORE_fit_percentage;
+                gpu_actual.last_fit_DP_CORE = fit_calculated * DP_CORE_fit_percentage;
+                gpu_actual.last_fit_SFU_CORE = fit_calculated * SFU_CORE_fit_percentage;
+                gpu_actual.last_fit_LDST_CORE = fit_calculated * LDST_CORE_fit_percentage;
+                gpu_actual.last_fit_slot_instr = fit_calculated * slot_instr_fit_percentage;
+                gpu_actual.last_fit_L1_unified = fit_calculated * L1_unified_fit_percentage;
+                gpu_actual.last_fit_shared_sm = fit_calculated * CUDA_CORE_fit_percentage;
+                gpu_actual.last_fit_l2 = fit_calculated * L2_fit_percentage;
+
+
+            }else{
+                gpu_actual.last_fit_CUDA_CORE = getFIT( gpu_actual.last_fit_CUDA_CORE,gpu_actual.original_fit_CUDA_CORE,seconds_past_loc,CC_acf, second_chunk, acceleration_factor_ld);
+                gpu_actual.last_fit_DP_CORE = getFIT( gpu_actual.last_fit_DP_CORE,gpu_actual.original_fit_DP_CORE,seconds_past_loc,DP_utilization , second_chunk, acceleration_factor_ld);
+                gpu_actual.last_fit_SFU_CORE = getFIT( gpu_actual.last_fit_SFU_CORE,gpu_actual.original_fit_SFU_CORE,seconds_past_loc,SFU_utilization , second_chunk, acceleration_factor_ld);
+                gpu_actual.last_fit_LDST_CORE = getFIT( gpu_actual.last_fit_LDST_CORE,gpu_actual.original_fit_LDST_CORE,seconds_past_loc,LDST_utilization , second_chunk, acceleration_factor_ld);
+                gpu_actual.last_fit_slot_instr = getFIT( gpu_actual.last_fit_slot_instr,gpu_actual.original_fit_slot_instr,seconds_past_loc,SLOT_utilization , second_chunk, acceleration_factor_ld);
+                gpu_actual.last_fit_L1_unified = getFIT( gpu_actual.last_fit_L1_unified,gpu_actual.original_fit_L1_unified,seconds_past_loc,L1_uni_utilization , second_chunk, acceleration_factor_ld);
+;                gpu_actual.last_fit_l2 = getFIT( gpu_actual.last_fit_l2,gpu_actual.original_fit_l2,seconds_past_loc,l2_utilization , second_chunk, acceleration_factor_ld);
+
+                fit_calculated += gpu_actual.last_fit_CUDA_CORE;
+                fit_calculated += gpu_actual.last_fit_DP_CORE;
+                fit_calculated += gpu_actual.last_fit_SFU_CORE;
+                fit_calculated += gpu_actual.last_fit_LDST_CORE;
+                fit_calculated += gpu_actual.last_fit_slot_instr;
+                fit_calculated += gpu_actual.last_fit_L1_unified;
+                fit_calculated += gpu_actual.last_fit_shared_sm;
+                fit_calculated += gpu_actual.last_fit_l2;
+            }
+
+            
 
             prob = getCompressProbability(fit_calculated, seconds_past_loc + second_chunk);
             fail_probability = (prob * 1000);
@@ -437,18 +510,23 @@ std::shared_ptr<Response> BSC_HWReliabilityMonitor::perform_analysis(std::shared
             std::shared_ptr<RequestMEM_GPU> mem_gpu_request = std::dynamic_pointer_cast<RequestMEM_GPU>(req);
             auto &temperatures_vector = mem_gpu_request->get_temperatures();
             fail_probability_previous = mem_gpu_request->get_state().failure_probability;
+            bool runtime = mem_gpu_request->get_runtime_mode();
+
 
             gpu_mem * state_prev = (gpu_mem * ) mem_gpu_request->get_state().state.get();
             gpu_mem gpumem_actual = (*state_prev); 
             
             seconds_past_loc  =  (*state_prev).second_past;
             fit_previous = (*state_prev).last_fitGPU_MEM;
+
             /**
              * 
              *  from 0 to 10 
              */
-
-            int dram_utilization = (int) mem_gpu_request->get_PC(perf_counter_type_t::DRAM_UTILIZATION).get_value();
+            
+            long double memory_gpu = runtime ?
+                                     ((long double)(int)mem_gpu_request->get_PC(perf_counter_type_t::MEMORY_UTILIZATION).get_value()) /100 :
+                                     ((long double)(int)mem_gpu_request->get_PC(perf_counter_type_t::DRAM_UTILIZATION).get_value()) /10;
 
             for (int t = 0; t < temperatures_vector.size() - 1; t++)
             {
@@ -458,7 +536,7 @@ std::shared_ptr<Response> BSC_HWReliabilityMonitor::perform_analysis(std::shared
                 temperature_avg = (temperatures_vector[t].temperature + temperatures_vector[t + 1].temperature) / 2;
                 acceleration_factor_ld = getAccelerationFactor(temperature_avg);
 
-                fit_calculated = getFIT(fit_previous, (*state_prev).original_fitGPU_MEM ,seconds_past_loc,(long double)dram_utilization / 10, second_chunk, acceleration_factor_ld); 
+                fit_calculated = getFIT(fit_previous, (*state_prev).original_fitGPU_MEM ,seconds_past_loc, memory_gpu, second_chunk, acceleration_factor_ld); 
 
                 prob = getCompressProbability(fit_calculated, seconds_past_loc + second_chunk);
                 fail_probability = (prob * 1000);

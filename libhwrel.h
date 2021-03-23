@@ -351,7 +351,7 @@ public:
      *                     counter). Otherwise, it uses the whole set of counters  
      * @throw std::invalid_argument If activity > 1000.
       */
-    RequestGPU(technology_type_t tech_type, unsigned int clock_frequency)
+    RequestGPU(technology_type_t tech_type, unsigned int clock_frequency, bool runtime_mode)
     : Request(resource_type_t::GPU, tech_type), clock_frequency(clock_frequency), runtime_mode(runtime_mode)
     {
         // if(activity > 1000) {
