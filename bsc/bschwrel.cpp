@@ -464,7 +464,7 @@ std::shared_ptr<Response> BSC_HWReliabilityMonitor::perform_analysis(std::shared
                 gpu_actual.last_fit_LDST_CORE = fit_calculated * LDST_CORE_fit_percentage;
                 gpu_actual.last_fit_slot_instr = fit_calculated * slot_instr_fit_percentage;
                 gpu_actual.last_fit_L1_unified = fit_calculated * L1_unified_fit_percentage;
-                gpu_actual.last_fit_shared_sm = fit_calculated * CUDA_CORE_fit_percentage;
+                gpu_actual.last_fit_shared_sm = fit_calculated * shared_fit_percentage;
                 gpu_actual.last_fit_l2 = fit_calculated * L2_fit_percentage;
 
 
@@ -475,7 +475,8 @@ std::shared_ptr<Response> BSC_HWReliabilityMonitor::perform_analysis(std::shared
                 gpu_actual.last_fit_LDST_CORE = getFIT( gpu_actual.last_fit_LDST_CORE,gpu_actual.original_fit_LDST_CORE,seconds_past_loc,LDST_utilization , second_chunk, acceleration_factor_ld);
                 gpu_actual.last_fit_slot_instr = getFIT( gpu_actual.last_fit_slot_instr,gpu_actual.original_fit_slot_instr,seconds_past_loc,SLOT_utilization , second_chunk, acceleration_factor_ld);
                 gpu_actual.last_fit_L1_unified = getFIT( gpu_actual.last_fit_L1_unified,gpu_actual.original_fit_L1_unified,seconds_past_loc,L1_uni_utilization , second_chunk, acceleration_factor_ld);
-;                gpu_actual.last_fit_l2 = getFIT( gpu_actual.last_fit_l2,gpu_actual.original_fit_l2,seconds_past_loc,l2_utilization , second_chunk, acceleration_factor_ld);
+                gpu_actual.last_fit_shared_sm = getFIT( gpu_actual.last_fit_shared_sm,gpu_actual.original_fit_shared_sm,seconds_past_loc,SH_utilization , second_chunk, acceleration_factor_ld);
+                gpu_actual.last_fit_l2 = getFIT( gpu_actual.last_fit_l2,gpu_actual.original_fit_l2,seconds_past_loc,l2_utilization , second_chunk, acceleration_factor_ld);
 
                 fit_calculated += gpu_actual.last_fit_CUDA_CORE;
                 fit_calculated += gpu_actual.last_fit_DP_CORE;
