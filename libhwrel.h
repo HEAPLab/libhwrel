@@ -56,13 +56,13 @@ enum class technology_type_t {
  * This struct contains the failure probability previously returned by the HW reliability monitor,
  * together with the time point when it was generated.
  */
-struct reliability_state_t {
+typedef struct reliability_state_t {
     std::chrono::time_point<std::chrono::system_clock> epoch;
     long double failure_probability;          /**< The failure probability CDF on 1000% */
     
     std::shared_ptr<void> state;
     size_t state_size;
-};
+} reliability_state_t;
 
 /**
  * @brief The struct containing a single temperature element. 
@@ -295,9 +295,8 @@ public:
     }
 
 private:
-    bool runtime_mode;
     unsigned long long band_max;        /* Max bandwith per gpu*/
-
+    bool runtime_mode;
 };
 
 /** 
